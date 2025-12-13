@@ -1,5 +1,7 @@
 local IFORGE = assert(rawget(_G, "itemforge3d"), "itemforge3d API not found")
 
+local physics = dofile(core.get_modpath(core.get_current_modname()) .. "/physx.lua")
+
 IFORGE.register("shields3d", "barbarian_shield", {
     description = "Barbarian Shield",
     type = "tool",
@@ -9,7 +11,7 @@ IFORGE.register("shields3d", "barbarian_shield", {
         { type = "defense",    value = core.settings:get("shields3d_barbarian_defense") or 15, modifier = "add" },
         { type = "block",      value = core.settings:get("shields3d_barbarian_block") or 5,   modifier = "add" },
         { type = "durability", value = 100, modifier = "set" },
-        { type = "damage_bonus", value = 2, modifier = "add" }
+        { type = "damage", value = 2, modifier = "add" }
     },
 
     block_wear = 655,
