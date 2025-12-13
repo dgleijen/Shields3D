@@ -58,3 +58,18 @@ minetest.register_on_player_hpchange(function(player, hp_change, reason)
 
     return hp_change
 end, true)
+
+function core.calculate_knockback(player, hitter, time_from_last_punch, tool_capabilities, dir, distance, damage)
+    local knockback = old_calculate_knockback(player, hitter, time_from_last_punch, tool_capabilities, dir, distance, damage)
+    local stats = IFORGE.get_stats(player)
+    local defense = stats.defense or 0  
+    local block   = stats.block or 0
+    if block > 0 and math.random(100) <= block then
+        return {x=0, y=0, z=0}
+    end
+    if defense > 0 then
+        knockback = vector.multiply(knockback, 1 - defense / 100)
+    end
+
+    return knockback
+end
