@@ -14,11 +14,11 @@ register_with_attach_model("shields3d", "spiked_shield", {
     slot = "shield",
     armor = { armor = 2, block = 1, knockback = -0.2 },
     properties = {
-            visual = "mesh",
-            mesh = "shields3d_spiked.glb",
-            textures = {"shields3d_spiked.png"},
-            visual_size = {x=1, y=1},
-        },
+        visual = "mesh",
+        mesh = "shields3d_spiked.glb",
+        textures = {"shields3d_spiked.png"},
+        visual_size = {x=1, y=1},
+    },
     attach_model = {
         attach = {
             bone = "Arm_Left",
@@ -32,16 +32,22 @@ register_with_attach_model("shields3d", "spiked_shield", {
             minetest.chat_send_player(user:get_player_name(), "You already have a shield equipped!")
         else
             armorforge.equip(user, itemstack, "shield")
-            itemforge3d.attach_entity(user, itemstack, { id = slot })
             itemstack:take_item(1)
         end
-        
         return itemstack
     end,
-
 })
 
+armorforge.register_on_equip(function(player, stack, slot)
+    if slot == "shield" then
+        itemforge3d.attach_entity(player, stack, { id = slot })
+    end
+end)
+
 armorforge.register_on_unequip(function(player, stack, slot)
+    if slot == "shield" then
+        itemforge3d.detach_entity(player, stack:get_name())
+    end
     if stack and not stack:is_empty() then
         local inv = player:get_inventory()
         if inv and inv:room_for_item("main", stack) then
@@ -51,7 +57,6 @@ armorforge.register_on_unequip(function(player, stack, slot)
         end
     end
 end)
-
 minetest.register_chatcommand("unequip", {
     params = "<slot>",
     description = "Unequip armor from a specific slot (helmet, chest, leggings, boots, shield)",
@@ -76,46 +81,36 @@ minetest.register_chatcommand("unequip", {
     end
 })
 
-minetest.register_on_player_hpchange(function(player, hp_change, reason)
-    if hp_change < 0 then
-        local stats = armorforge.get_stats(player)
-        local defense = stats.armor or 0
-        local block   = stats.block or 0
 
-        local reduced = hp_change * (1 - defense / 100)
+local function re_equip_all(player)
+    if not player then return end
+    local pname = player:get_player_name()
+    local equipped = armorforge.get_equipped(player)
+    if not equipped then return end
 
-        if block > 0 and math.random(100) <= block then
-            local shield = armorforge.get_equipped_in_slot(player, "shield")
-            if shield and not shield:is_empty() then
-                local def = shield:get_definition()
-                local wear = 1 + ((def and def.block_wear) or 0)
-                shield:add_wear(wear)
-            end
-            return 0 
+    for slot, stack in pairs(equipped) do
+        if stack and not stack:is_empty() then
+            armorforge.equip(player, stack, slot)
+            itemforge3d.attach_entity(player, stack, { id = slot })
         end
-
-        return reduced
     end
-
-    return hp_change
-end, true)
-
-local old_knockback = core.calculate_knockback
-
-function core.calculate_knockback(player, hitter, time_from_last_punch, tool_capabilities, dir, distance, damage)
-    local knockback = old_knockback(player, hitter, time_from_last_punch, tool_capabilities, dir, distance, damage)
-
-    local stats = armorforge.get_stats(player)
-    local defense = stats.armor or 0
-    local block   = stats.block or 0
-
-    if block > 0 and math.random(100) <= block then
-        return {x=0, y=0, z=0}
-    end
-
-    if defense > 0 then
-        knockback = vector.multiply(knockback, 1 - defense / 100)
-    end
-
-    return knockback
 end
+
+minetest.register_on_joinplayer(function(player)
+    minetest.after(1, function()
+        re_equip_all(player)
+    end)
+end)
+
+minetest.register_chatcommand("reequip_all", {
+    description = "Re-equip all stored armor/tools",
+    privs = {},
+    func = function(name)
+        local player = minetest.get_player_by_name(name)
+        if not player then
+            return false, "Player not found."
+        end
+        re_equip_all(player)
+        return true, "Re-equipped all stored slots."
+    end
+})
