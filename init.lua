@@ -2,15 +2,19 @@ local IFORGE = assert(rawget(_G, "itemforge3d"), "itemforge3d API not found")
 
 local physics = dofile(core.get_modpath(core.get_current_modname()) .. "/physx.lua")
 
-IFORGE.register("shields3d", "barbarian_shield", {
-    description = "Barbarian Shield",
+local settings = {
+    barbarian_shield_small = 
+
+}
+
+IFORGE.register("shields3d", "spiked_shield", {
+    description = "Spiked Shield",
     type = "tool",
-    inventory_image = "shields3d_barbarian_inv.png",
+    inventory_image = "spiked_shield_inv.png",
     slot = "shield",
     stats = {
         { type = "defense",    value = core.settings:get("shields3d_barbarian_defense") or 15, modifier = "add" },
         { type = "block",      value = core.settings:get("shields3d_barbarian_block") or 5,   modifier = "add" },
-        { type = "durability", value = 100, modifier = "set" },
         { type = "damage", value = 2, modifier = "add" }
     },
 
@@ -18,8 +22,8 @@ IFORGE.register("shields3d", "barbarian_shield", {
     attach_model = {
         properties = {
             visual = "mesh",
-            mesh = "shields3d_barbarian.glb",
-            textures = {"shields3d_barbarian.png"},
+            mesh = "shields3d_spiked_shield.glb",
+            textures = {"shields3d_spiked_shield.png"},
             visual_size = {x=1, y=1},
         },
         attach = {
@@ -35,6 +39,38 @@ IFORGE.register("shields3d", "barbarian_shield", {
     end
 })
 
+IFORGE.register("shields3d", "barbarian_shield_small", {
+    description = "Small Barbarian Shield",
+    type = "tool",
+    inventory_image = "barbarian_shield_small_inv.png",
+    slot = "shield",
+    stats = {
+        { type = "defense",    value = core.settings:get("shields3d_barbarian_defense") or 15, modifier = "add" },
+        { type = "block",      value = core.settings:get("shields3d_barbarian_block") or 5,   modifier = "add" },
+        { type = "durability", value = 100, modifier = "set" },
+        { type = "damage", value = 2, modifier = "add" }
+    },
+
+    block_wear = 655,
+    attach_model = {
+        properties = {
+            visual = "mesh",
+            mesh = "shields3d_barbarian_small.glb",
+            textures = {"shields3d_barbarian_small.png"},
+            visual_size = {x=1, y=1},
+        },
+        attach = {
+            bone = "Arm_Left",
+            position = {x=-0.5, y=0, z=-3.5},
+            rotation = {x=0, y=90, z=0},
+            forced_visible = false
+        }
+    },
+    on_use = function(itemstack, user, pointed_thing)
+        IFORGE.equip(user, itemstack)
+        return itemstack
+    end
+})
 
 minetest.register_on_player_hpchange(function(player, hp_change, reason)
     if reason.type == "punch" then
@@ -61,9 +97,6 @@ minetest.register_on_player_hpchange(function(player, hp_change, reason)
 
                     local current_wear = equipped.stack:get_wear()
                     local percent = math.max(0, 100 - (current_wear / 65535) * 100)
-                    if equipped.stack:is_empty() or percent <= 0 then
-                        IFORGE.unequip(player, "shield")
-                    end
                 end
                 return 0
             end
@@ -93,3 +126,5 @@ function core.calculate_knockback(player, hitter, time_from_last_punch, tool_cap
 
     return knockback
 end
+
+
