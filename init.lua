@@ -1,9 +1,9 @@
 local IFORGE = assert(rawget(_G, "itemforge3d"), "itemforge3d API not found")
 
 IFORGE.register("shields3d", "shield", {
-    description = "Basic Shield",
+    description = "Barbarian Shield",
     type = "tool",
-    inventory_image = "shield.png",
+    inventory_image = "shields3d_barbarian_inv.png",
     slot = "shield",
     stats = {
         { type = "defense", value = 15, modifier = "add" },
@@ -19,9 +19,9 @@ IFORGE.register("shields3d", "shield", {
         },
         attach = {
             bone = "Arm_Left", 
-            position = {x=0, y=0, z=0},   
-            rotation = {x=0, y=0, z=0},    
-            forced_visible = true        
+            position = {x=1, y=7, z=1.5},   
+            rotation = {x=0, y=-45, z=180},    
+            forced_visible = false        
         }
     },
 
