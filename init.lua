@@ -88,7 +88,6 @@ local function re_equip_all(player)
 
     for slot, stack in pairs(equipped) do
         if stack and not stack:is_empty() then
-            -- Only reattach visuals, don't re-trigger equip callbacks
             itemforge3d.attach_entity(player, stack, { id = slot })
         end
     end
