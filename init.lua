@@ -12,7 +12,7 @@ register_with_attach_model("shields3d", "spiked_shield", {
     type = "tool",
     inventory_image = "shields3d_spiked_inv.png",
     slot = "shield",
-    armor = { armor = 2, block = 1, knockback = -0.2 },
+    armor = { armor = 15, block = 5, knockback = 2 },
     properties = {
         visual = "mesh",
         mesh = "shields3d_spiked.glb",
