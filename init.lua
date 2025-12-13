@@ -1,13 +1,20 @@
 local IFORGE = assert(rawget(_G, "itemforge3d"), "itemforge3d API not found")
 
-IFORGE.register("shields3d", "shield", {
+local settings = {
+    barbarian_shield = {
+        defense = tonumber(minetest.settings:get("shields3d_barbarian_defense")) or 15,
+        block   = tonumber(minetest.settings:get("shields3d_barbarian_block")) or 5,
+    }
+}
+
+IFORGE.register("shields3d", "barbarian_shield", {
     description = "Barbarian Shield",
     type = "tool",
     inventory_image = "shields3d_barbarian_inv.png",
     slot = "shield",
     stats = {
-        { type = "defense", value = 15, modifier = "add" },
-        { type = "block",   value = 5, modifier = "add" }
+        { type = "defense", value = settings.barbarian_shield.defense, modifier = "add" },
+        { type = "block",   value = settings.barbarian_shield.block, modifier = "add" }
     },
 
     attach_model = {

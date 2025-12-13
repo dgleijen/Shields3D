@@ -1,0 +1,5 @@
+[ Shield settings ]
+
+# Barbarian Shield
+shields3d_barbarian_defense (Defense percentage for Barbarian Shield) int 15 0 100
+shields3d_barbarian_block   (Block chance percentage for Barbarian Shield) int 5 0 100
