@@ -1,119 +1,112 @@
-local IFORGE = assert(rawget(_G, "itemforge3d"), "itemforge3d API not found")
-
 local physics = dofile(core.get_modpath(core.get_current_modname()) .. "/physx.lua")
+local function register_with_attach_model(modname, name, def)
+    if def.attach_model then
+        def.properties = def.properties
+        def.attach = def.attach or def.attach_model.attach
+    end
+    itemforge3d.register(modname, name, def)
+end
 
-local settings = {
-    barbarian_shield_small = 
-
-}
-
-IFORGE.register("shields3d", "spiked_shield", {
+register_with_attach_model("shields3d", "spiked_shield", {
     description = "Spiked Shield",
     type = "tool",
-    inventory_image = "spiked_shield_inv.png",
+    inventory_image = "shields3d_spiked_inv.png",
     slot = "shield",
-    stats = {
-        { type = "defense",    value = core.settings:get("shields3d_barbarian_defense") or 15, modifier = "add" },
-        { type = "block",      value = core.settings:get("shields3d_barbarian_block") or 5,   modifier = "add" },
-        { type = "damage", value = 2, modifier = "add" }
-    },
-
-    block_wear = 655,
-    attach_model = {
-        properties = {
+    armor = { armor = 2, block = 1, knockback = -0.2 },
+    properties = {
             visual = "mesh",
-            mesh = "shields3d_spiked_shield.glb",
-            textures = {"shields3d_spiked_shield.png"},
+            mesh = "shields3d_spiked.glb",
+            textures = {"shields3d_spiked.png"},
             visual_size = {x=1, y=1},
         },
+    attach_model = {
         attach = {
             bone = "Arm_Left",
-            position = {x=1, y=7, z=1.5},
-            rotation = {x=0, y=-45, z=180},
-            forced_visible = false
+            pos = {x=1, y=7, z=1.5},
+            rot = {x=0, y=-45, z=180},
+            force_visible = false,
         }
     },
-    on_use = function(itemstack, user, pointed_thing)
-        IFORGE.equip(user, itemstack)
+    on_place = function(itemstack, user, pointed_thing)
+        if armorforge.has_equipped(user, "shield") then
+            minetest.chat_send_player(user:get_player_name(), "You already have a shield equipped!")
+        else
+            armorforge.equip(user, itemstack, "shield")
+            itemforge3d.attach_entity(user, itemstack, { id = slot })
+            itemstack:take_item(1)
+        end
+        
         return itemstack
-    end
+    end,
+
 })
 
-IFORGE.register("shields3d", "barbarian_shield_small", {
-    description = "Small Barbarian Shield",
-    type = "tool",
-    inventory_image = "barbarian_shield_small_inv.png",
-    slot = "shield",
-    stats = {
-        { type = "defense",    value = core.settings:get("shields3d_barbarian_defense") or 15, modifier = "add" },
-        { type = "block",      value = core.settings:get("shields3d_barbarian_block") or 5,   modifier = "add" },
-        { type = "durability", value = 100, modifier = "set" },
-        { type = "damage", value = 2, modifier = "add" }
-    },
+armorforge.register_on_unequip(function(player, stack, slot)
+    if stack and not stack:is_empty() then
+        local inv = player:get_inventory()
+        if inv and inv:room_for_item("main", stack) then
+            inv:add_item("main", stack)
+        else
+            minetest.item_drop(stack, player, player:get_pos())
+        end
+    end
+end)
 
-    block_wear = 655,
-    attach_model = {
-        properties = {
-            visual = "mesh",
-            mesh = "shields3d_barbarian_small.glb",
-            textures = {"shields3d_barbarian_small.png"},
-            visual_size = {x=1, y=1},
-        },
-        attach = {
-            bone = "Arm_Left",
-            position = {x=-0.5, y=0, z=-3.5},
-            rotation = {x=0, y=90, z=0},
-            forced_visible = false
-        }
-    },
-    on_use = function(itemstack, user, pointed_thing)
-        IFORGE.equip(user, itemstack)
-        return itemstack
+minetest.register_chatcommand("unequip", {
+    params = "<slot>",
+    description = "Unequip armor from a specific slot (helmet, chest, leggings, boots, shield)",
+    privs = {},
+    func = function(name, param)
+        local player = minetest.get_player_by_name(name)
+        if not player then
+            return false, "Player not found."
+        end
+
+        local slot = param:lower()
+        if not armorforge.has_equipped(player, slot) then
+            return false, "You have nothing equipped in the '" .. slot .. "' slot."
+        end
+
+        local success = armorforge.unequip(player, slot)
+        if success then
+            return true, "Unequipped item from slot '" .. slot .. "'."
+        else
+            return false, "Failed to unequip from slot '" .. slot .. "'."
+        end
     end
 })
 
 minetest.register_on_player_hpchange(function(player, hp_change, reason)
-    if reason.type == "punch" then
-        if hp_change < 0 then
-            local atk_stats = IFORGE.get_stats(reason.object)
-            local dmg_bonus = atk_stats.damage_bonus or 0
-            if dmg_bonus > 0 then
-                hp_change = hp_change * (1 + dmg_bonus / 100)
+    if hp_change < 0 then
+        local stats = armorforge.get_stats(player)
+        local defense = stats.armor or 0
+        local block   = stats.block or 0
+
+        local reduced = hp_change * (1 - defense / 100)
+
+        if block > 0 and math.random(100) <= block then
+            local shield = armorforge.get_equipped_in_slot(player, "shield")
+            if shield and not shield:is_empty() then
+                local def = shield:get_definition()
+                local wear = 1 + ((def and def.block_wear) or 0)
+                shield:add_wear(wear)
             end
+            return 0 
         end
 
-        if hp_change < 0 then
-            local stats = IFORGE.get_stats(player)
-            local defense = stats.defense or 0
-            local block   = stats.block or 0
-
-            local reduced = hp_change * (1 - defense / 100)
-
-            if block > 0 and math.random(100) <= block then
-                local equipped = IFORGE.get_slot(player, "shield")
-                if equipped and equipped.stack then
-                    local wear = 1 + (equipped.def.block_wear or 0)
-                    equipped.stack:add_wear(wear)
-
-                    local current_wear = equipped.stack:get_wear()
-                    local percent = math.max(0, 100 - (current_wear / 65535) * 100)
-                end
-                return 0
-            end
-
-            return reduced
-        end
+        return reduced
     end
 
     return hp_change
 end, true)
 
-local old_calculate_knockback = core.calculate_knockback
-function core.calculate_knockback(player, hitter, time_from_last_punch, tool_capabilities, dir, distance, damage)
-    local knockback = old_calculate_knockback(player, hitter, time_from_last_punch, tool_capabilities, dir, distance, damage)
+local old_knockback = core.calculate_knockback
 
-    local stats = IFORGE.get_stats(player)
-    local defense = stats.defense or 0
+function core.calculate_knockback(player, hitter, time_from_last_punch, tool_capabilities, dir, distance, damage)
+    local knockback = old_knockback(player, hitter, time_from_last_punch, tool_capabilities, dir, distance, damage)
+
+    local stats = armorforge.get_stats(player)
+    local defense = stats.armor or 0
     local block   = stats.block or 0
 
     if block > 0 and math.random(100) <= block then
@@ -126,5 +119,3 @@ function core.calculate_knockback(player, hitter, time_from_last_punch, tool_cap
 
     return knockback
 end
-
-
