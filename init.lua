@@ -36,8 +36,7 @@ IFORGE.register("shields3d", "shield", {
 
 minetest.register_on_player_hpchange(function(player, hp_change, reason)
     if hp_change < 0 and reason.type == "punch" then
-        local controls = player:get_player_control()
-        if controls.sneak then
+
             local stats = IFORGE.get_stats(player)
             local defense = stats.defense or 0 
             local block   = stats.block or 0
@@ -49,6 +48,6 @@ minetest.register_on_player_hpchange(function(player, hp_change, reason)
 
             return reduced
         end
-    end
+
     return hp_change
 end, true)
