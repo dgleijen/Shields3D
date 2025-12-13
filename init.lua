@@ -45,8 +45,6 @@ minetest.register_on_player_hpchange(function(player, hp_change, reason)
             if equipped and equipped.stack then
                 local wear = equipped.def.block_wear or (65535 / 100)
                 equipped.stack:add_wear(wear)
-
-                -- update durability stat based on wear
                 local current_wear = equipped.stack:get_wear()
                 local percent = math.max(0, 100 - (current_wear / 65535) * 100)
                 stats.durability = percent
