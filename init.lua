@@ -9,9 +9,9 @@ IFORGE.register("shields3d", "barbarian_shield", {
         { type = "defense",    value = core.settings:get("shields3d_barbarian_defense") or 15, modifier = "add" },
         { type = "block",      value = core.settings:get("shields3d_barbarian_block") or 5,   modifier = "add" },
         { type = "durability", value = 100, modifier = "set" },
-        { type = "damage_bonus", value = 2, modifier = "add" } -- +2% outgoing damage when equipped
+        { type = "damage_bonus", value = 2, modifier = "add" }
     },
-    -- optional extra wear per block (added on top of +1 wear)
+
     block_wear = 655,
     attach_model = {
         properties = {
