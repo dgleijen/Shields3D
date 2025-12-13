@@ -81,16 +81,14 @@ minetest.register_chatcommand("unequip", {
     end
 })
 
-
 local function re_equip_all(player)
     if not player then return end
-    local pname = player:get_player_name()
     local equipped = armorforge.get_equipped(player)
     if not equipped then return end
 
     for slot, stack in pairs(equipped) do
         if stack and not stack:is_empty() then
-            armorforge.equip(player, stack, slot)
+            -- Only reattach visuals, don't re-trigger equip callbacks
             itemforge3d.attach_entity(player, stack, { id = slot })
         end
     end
