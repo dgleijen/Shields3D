@@ -6,12 +6,15 @@ local MODNAME = core.get_current_modname()
 
 local SHIELDS3D = {}
 shields3d = {}
+local afapi = armorforge.api
+
+
 
 local function osu(itemstack, user, pointed_thing)
-    if armorforge.has_equipped(user, DEFAULT_SLOT) then
+    if afapi.has_equipped(user, DEFAULT_SLOT) then
         core.chat_send_player(user:get_player_name(), "You already have a shield equipped!")
     else
-        armorforge.equip(user, itemstack, DEFAULT_SLOT)
+        afapi.equip(user, itemstack, DEFAULT_SLOT)
         itemstack:take_item(1)
     end
     return itemstack
@@ -89,13 +92,13 @@ for _, def in ipairs(shields) do
     SHIELDS3D.register_shield(MODNAME, def.name, def)
 end
 
-armorforge.register_on_equip(function(player, stack, slot)
+afapi.register_on_equip(function(player, stack, slot)
     if slot == DEFAULT_SLOT then
         itemforge3d.attach_entity(player, stack, { id = slot })
     end
 end)
 
-armorforge.register_on_unequip(function(player, stack, slot)
+afapi.register_on_unequip(function(player, stack, slot)
     if slot == DEFAULT_SLOT then
         itemforge3d.detach_entity(player, stack:get_name())
     end
@@ -120,11 +123,11 @@ core.register_chatcommand("unequip", {
         end
 
         local slot = param:lower()
-        if not armorforge.has_equipped(player, slot) then
+        if not afapi.has_equipped(player, slot) then
             return false, "You have nothing equipped in the '" .. slot .. "' slot."
         end
 
-        local success = armorforge.unequip(player, slot)
+        local success = afapi.unequip(player, slot)
         if success then
             return true, "Unequipped item from slot '" .. slot .. "'."
         else
@@ -135,7 +138,7 @@ core.register_chatcommand("unequip", {
 
 local function re_equip_all(player)
     if not player then return end
-    local equipped = armorforge.get_equipped(player)
+    local equipped = afapi.get_equipped(player)
     if not equipped then return end
 
     for slot, stack in pairs(equipped) do
