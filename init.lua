@@ -1,4 +1,5 @@
 local physics = dofile(core.get_modpath(core.get_current_modname()) .. "/physx.lua")
+
 local function register_with_attach_model(modname, name, def)
     if def.attach_model then
         def.properties = def.properties
@@ -12,7 +13,7 @@ register_with_attach_model("shields3d", "spiked_shield", {
     type = "tool",
     inventory_image = "shields3d_spiked_inv.png",
     slot = "shield",
-    armor = { armor = 15, block = 5, knockback = 2 },
+    armor = { armor = 15, block = 5, knockback = 2, speed_walk = 0, gravity = 0 },
     properties = {
         visual = "mesh",
         mesh = "shields3d_spiked.glb",
@@ -27,7 +28,7 @@ register_with_attach_model("shields3d", "spiked_shield", {
             force_visible = false,
         }
     },
-    on_place = function(itemstack, user, pointed_thing)
+    on_secondary_use = function(itemstack, user, pointed_thing)
         if armorforge.has_equipped(user, "shield") then
             minetest.chat_send_player(user:get_player_name(), "You already have a shield equipped!")
         else
@@ -57,6 +58,7 @@ armorforge.register_on_unequip(function(player, stack, slot)
         end
     end
 end)
+
 minetest.register_chatcommand("unequip", {
     params = "<slot>",
     description = "Unequip armor from a specific slot (helmet, chest, leggings, boots, shield)",
