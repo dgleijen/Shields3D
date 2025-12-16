@@ -1,5 +1,3 @@
--- Shield registration system for ItemForge3D + ArmorForge
-
 local DEFAULT_SLOT    = "shield"
 local STANDARD_TYPE   = "tool"
 local STANDARD_VISUAL = "mesh"
@@ -10,18 +8,18 @@ local SHIELDS3D = {}
 shields3d = {}
 local afapi = armorforge.api
 
--- Secondary use: equip shield
 local function osu(itemstack, user, pointed_thing)
-    if afapi.has_equipped(user, DEFAULT_SLOT) then
-        core.chat_send_player(user:get_player_name(), "You already have a shield equipped!")
-    else
-        afapi.equip(user, itemstack, DEFAULT_SLOT)
-        itemstack:take_item(1)
+    if user:get_player_control().sneak then
+        if afapi.has_equipped(user, DEFAULT_SLOT) then
+            core.chat_send_player(user:get_player_name(), "You already have a shield equipped!")
+        else
+            afapi.equip(user, itemstack, DEFAULT_SLOT)
+            itemstack:take_item(1)
+        end
+        return itemstack
     end
-    return itemstack
 end
 
--- Utility: merge tables
 local function merge_tables(base, overrides)
     local result = table.copy(base)
     for k,v in pairs(overrides or {}) do
@@ -36,7 +34,6 @@ local function merge_tables(base, overrides)
     return result
 end
 
--- Register shield with ItemForge3D
 function SHIELDS3D.register_shield(modname, name, overrides, wield_mode)
     local item_id = modname .. ":" .. name
     local visual_mode = wield_mode or STANDARD_VISUAL
@@ -62,11 +59,9 @@ function SHIELDS3D.register_shield(modname, name, overrides, wield_mode)
 
     local def = merge_tables(base_def, overrides or {})
 
-    -- Direct attach only (no attach_model wrapper)
     itemforge3d.register(modname, name, def)
 end
 
--- Generate shields
 local AMOUNT = 4
 local SHIELDS = {}
 
@@ -90,22 +85,32 @@ for i = 1, AMOUNT do
     table.insert(SHIELDS, shield)
 end
 
--- Register all shields
 for _, def in ipairs(SHIELDS) do
     SHIELDS3D.register_shield(MODNAME, def.name, def)
 end
 
--- Equip/unequip hooks
 afapi.register_on_equip(function(player, stack, slot)
     if slot == DEFAULT_SLOT then
         itemforge3d.attach_entity(player, stack, { id = slot })
+
+        core.sound_play("shield_equip", {
+            to_player = player:get_player_name(),
+            gain = math.random(8, 12) / 10.0,
+            pitch = math.random(95, 105) / 100.0, 
+        })
     end
 end)
 
 afapi.register_on_unequip(function(player, stack, slot)
     if slot == DEFAULT_SLOT then
-        itemforge3d.detach_entity(player, slot)  -- use slot as ID
+        itemforge3d.detach_entity(player, slot)
+        core.sound_play("shield_unequip", {
+            to_player = player:get_player_name(),
+            gain = math.random(8, 12) / 10.0,
+            pitch = math.random(95, 105) / 100.0,
+        })
     end
+
     if stack and stack:get_count() > 0 then
         local inv = player:get_inventory()
         if inv and inv:room_for_item("main", stack) then
@@ -116,7 +121,6 @@ afapi.register_on_unequip(function(player, stack, slot)
     end
 end)
 
--- Chat command for manual unequip
 core.register_chatcommand("unequip", {
     params = "<slot>",
     description = "Unequip armor from a specific slot (helmet, chest, leggings, boots, shield)",
@@ -141,7 +145,6 @@ core.register_chatcommand("unequip", {
     end
 })
 
--- Re-equip shields on join
 local function re_equip_all(player)
     if not player then return end
     local equipped = afapi.get_equipped(player)
