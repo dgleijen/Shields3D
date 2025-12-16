@@ -7,6 +7,7 @@ local MODNAME         = core.get_current_modname()
 local SHIELDS3D = {}
 shields3d = {}
 local afapi = armorforge.api
+local re_equipping = {}
 
 local function osu(itemstack, user, pointed_thing)
     if user:get_player_control().sneak then
@@ -15,6 +16,12 @@ local function osu(itemstack, user, pointed_thing)
         else
             afapi.equip(user, itemstack, DEFAULT_SLOT)
             itemstack:take_item(1)
+
+            core.sound_play("equip", {
+                to_player = user:get_player_name(),
+                gain = math.random(8, 12) / 10.0,
+                pitch = math.random(95, 105) / 100.0,
+            })
         end
         return itemstack
     end
@@ -92,19 +99,13 @@ end
 afapi.register_on_equip(function(player, stack, slot)
     if slot == DEFAULT_SLOT then
         itemforge3d.attach_entity(player, stack, { id = slot })
-
-        core.sound_play("shield_equip", {
-            to_player = player:get_player_name(),
-            gain = math.random(8, 12) / 10.0,
-            pitch = math.random(95, 105) / 100.0, 
-        })
     end
 end)
 
 afapi.register_on_unequip(function(player, stack, slot)
     if slot == DEFAULT_SLOT then
         itemforge3d.detach_entity(player, slot)
-        core.sound_play("shield_unequip", {
+        core.sound_play("unequip", {
             to_player = player:get_player_name(),
             gain = math.random(8, 12) / 10.0,
             pitch = math.random(95, 105) / 100.0,
@@ -121,7 +122,7 @@ afapi.register_on_unequip(function(player, stack, slot)
     end
 end)
 
-core.register_chatcommand("unequip", {
+core.register_chatcommand("equip", {
     params = "<slot>",
     description = "Unequip armor from a specific slot (helmet, chest, leggings, boots, shield)",
     privs = {},
@@ -147,6 +148,9 @@ core.register_chatcommand("unequip", {
 
 local function re_equip_all(player)
     if not player then return end
+    local pname = player:get_player_name()
+    re_equipping[pname] = true
+
     local equipped = afapi.get_equipped(player)
     if not equipped then return end
 
@@ -155,7 +159,9 @@ local function re_equip_all(player)
             itemforge3d.attach_entity(player, stack, { id = slot })
         end
     end
+    core.after(0.1, function() re_equipping[pname] = nil end)
 end
+
 
 core.register_on_mods_loaded(function()
     core.register_on_joinplayer(function(player)
