@@ -1,15 +1,16 @@
-local DEFAULT_SLOT = "shield"
-local STANDARD_TYPE = "tool"
+-- Shield registration system for ItemForge3D + ArmorForge
+
+local DEFAULT_SLOT    = "shield"
+local STANDARD_TYPE   = "tool"
 local STANDARD_VISUAL = "mesh"
-local STANDARD_SIZE = {x=1, y=1}
-local MODNAME = core.get_current_modname()
+local STANDARD_SIZE   = {x=1, y=1}
+local MODNAME         = core.get_current_modname()
 
 local SHIELDS3D = {}
 shields3d = {}
 local afapi = armorforge.api
 
-
-
+-- Secondary use: equip shield
 local function osu(itemstack, user, pointed_thing)
     if afapi.has_equipped(user, DEFAULT_SLOT) then
         core.chat_send_player(user:get_player_name(), "You already have a shield equipped!")
@@ -20,20 +21,7 @@ local function osu(itemstack, user, pointed_thing)
     return itemstack
 end
 
-local function register_with_attach_model(modname, name, def)
-    if def.attach_model then
-        def.attach = def.attach or def.attach_model.attach
-        if not def.attach then
-            core.log("warning", "[itemforge3d] attach_model provided but no attach data found.")
-        end
-        itemforge3d.register(modname, name, def)
-    end
-end
-
-local function make_item_id(modname, name)
-    return modname .. "_" .. name
-end
-
+-- Utility: merge tables
 local function merge_tables(base, overrides)
     local result = table.copy(base)
     for k,v in pairs(overrides or {}) do
@@ -48,50 +36,66 @@ local function merge_tables(base, overrides)
     return result
 end
 
-function SHIELDS3D.register_shield(modname, name, overrides)
-    local item_id = make_item_id(modname, name)
+-- Register shield with ItemForge3D
+function SHIELDS3D.register_shield(modname, name, overrides, wield_mode)
+    local item_id = modname .. ":" .. name
+    local visual_mode = wield_mode or STANDARD_VISUAL
 
     local base_def = {
         description = "Shield",
         type = STANDARD_TYPE,
-        inventory_image = item_id .. "_inv.png",
-        slot = DEFAULT_SLOT,
-        armor = overrides.armor or { armor = 0, block = 0, knockback = 0, speed_walk = 0, gravity = 0 },
+        inventory_image = name .. ".png",
+        armor = { armor = 0, block = 0, knockback = 0, speed_walk = 0, gravity = 0 },
         properties = {
-            visual = STANDARD_VISUAL,
-            mesh = item_id .. ".glb",
-            textures = { item_id .. ".png" },
+            visual = visual_mode,
             visual_size = STANDARD_SIZE,
         },
-        attach_model = overrides.attach_model,
         on_secondary_use = osu,
     }
 
-    local def = merge_tables(base_def, overrides)
-    register_with_attach_model(modname, item_id, def)
+    if visual_mode == "mesh" then
+        base_def.properties.mesh = name .. ".glb"
+    elseif visual_mode == "wielditem" then
+        base_def.properties.wield_item = item_id
+        base_def.properties.visual_size = {x=0.667, y=0.667}
+    end
+
+    local def = merge_tables(base_def, overrides or {})
+
+    -- Direct attach only (no attach_model wrapper)
+    itemforge3d.register(modname, name, def)
 end
 
+-- Generate shields
+local AMOUNT = 4
+local SHIELDS = {}
 
-local shields = {
-    {
-        name = "spiked",
-        description = "Spiked Shield",
-        armor = { armor = 15, block = 5, knockback = 2 },
-        attach_model = {
-            attach = {
-                bone = "Arm_Left",
-                pos = {x=1, y=7, z=1.5},
-                rot = {x=0, y=-45, z=180},
-                force_visible = false,
-            }
+for i = 1, AMOUNT do
+    local shield = {
+        name = "shield_" .. i,
+        description = "Shield " .. i,
+        properties = {
+            visual = "wielditem",
+            wield_item = "shields3d:shield_" .. i,
+            visual_size = {x=0.4, y=0.4, z=0.25},
+            inventory_image = "shield_" .. i .. ".png",
         },
-    },
-}
+        attach = {
+            bone = "Arm_Left",
+            pos  = {x=1, y=4.5, z=1.5},
+            rot  = {x=0, y=-45, z=180},
+            force_visible = false,
+        },
+    }
+    table.insert(SHIELDS, shield)
+end
 
-for _, def in ipairs(shields) do
+-- Register all shields
+for _, def in ipairs(SHIELDS) do
     SHIELDS3D.register_shield(MODNAME, def.name, def)
 end
 
+-- Equip/unequip hooks
 afapi.register_on_equip(function(player, stack, slot)
     if slot == DEFAULT_SLOT then
         itemforge3d.attach_entity(player, stack, { id = slot })
@@ -100,7 +104,7 @@ end)
 
 afapi.register_on_unequip(function(player, stack, slot)
     if slot == DEFAULT_SLOT then
-        itemforge3d.detach_entity(player, stack:get_name())
+        itemforge3d.detach_entity(player, slot)  -- use slot as ID
     end
     if stack and stack:get_count() > 0 then
         local inv = player:get_inventory()
@@ -112,6 +116,7 @@ afapi.register_on_unequip(function(player, stack, slot)
     end
 end)
 
+-- Chat command for manual unequip
 core.register_chatcommand("unequip", {
     params = "<slot>",
     description = "Unequip armor from a specific slot (helmet, chest, leggings, boots, shield)",
@@ -136,6 +141,7 @@ core.register_chatcommand("unequip", {
     end
 })
 
+-- Re-equip shields on join
 local function re_equip_all(player)
     if not player then return end
     local equipped = afapi.get_equipped(player)
@@ -148,9 +154,11 @@ local function re_equip_all(player)
     end
 end
 
-core.register_on_joinplayer(function(player)
-    core.after(1.0, function()
-        re_equip_all(player)
+core.register_on_mods_loaded(function()
+    core.register_on_joinplayer(function(player)
+        core.after(1.0, function()
+            re_equip_all(player)
+        end)
     end)
 end)
 
